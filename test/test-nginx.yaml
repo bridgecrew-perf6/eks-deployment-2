@@ -1,0 +1,90 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-nginx
+  namespace: test-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: test-nginx
+  template:
+    metadata:
+      labels:
+        run: test-nginx
+    spec:
+      containers:
+      - name: test-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-nginx
+  namespace: test-nginx
+  labels:
+    run: test-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: test-nginx
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: test-nginx
+  name: test-nginx-cert
+spec:
+  secretName: test-nginx-cert
+  dnsNames:
+    - <your.domain.com>
+  issuerRef:
+    kind: ClusterIssuer
+    name: "letsencrypt"
+
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: www-ingress-rule
+  namespace: test-nginx
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`<your.domain.com>`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: test-nginx
+          namespace: test-nginx
+          port: 80
+          passHostHeader: true
+          scheme: http
+
+  tls:
+    secretName: test-nginx-cert
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: test-nginx
+  name: test-nginx-ingress
+
+spec:
+  rules:
+    - host: <your.domain.com>

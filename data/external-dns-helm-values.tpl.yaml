@@ -1,0 +1,11 @@
+domainFilters:
+  - ${domain}
+txtOwnerId: ${hostZoneID}
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 0
+serviceAccount:
+  create: false
+  name: ${serviceAccountName}
+logLevel: debug
+policy: sync
